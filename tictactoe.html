@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic Tac Toe</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            -webkit-tap-highlight-color: transparent; /* Disable tap highlight on mobile */
+        }
+        .cell {
+            transition: background-color 0.3s ease;
+        }
+        .cell:hover {
+            background-color: #2d3748; /* dark:bg-gray-700 */
+        }
+        .cell.x::before, .cell.o::before {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            font-weight: 700;
+            line-height: 1;
+            animation: pop-in 0.3s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+        }
+        .cell.x::before {
+            content: 'X';
+            color: #48bb78; /* text-green-500 */
+        }
+        .cell.o::before {
+            content: 'O';
+            color: #f56565; /* text-red-500 */
+        }
+        /* Winning cell highlight */
+        .winning-cell {
+            background-color: #a0aec0 !important; /* bg-gray-400 */
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pop-in {
+            0% {
+                transform: scale(0.5);
+                opacity: 0;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.7;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col items-center justify-center min-h-screen p-4">
+
+    <div class="text-center">
+        <h1 class="text-5xl font-bold mb-2">Tic Tac Toe</h1>
+        <h2 id="status-text" class="text-2xl text-gray-400 h-10 mb-6 transition-opacity duration-300">Player X's turn</h2>
+    </div>
+
+    <div class="w-full max-w-sm">
+        <div id="game-board" class="grid grid-cols-3 gap-3">
+            <!-- The 9 cells of the Tic Tac Toe board -->
+            <div data-cell-index="0" class="cell w-full aspect-square bg-gray-800 rounded-lg flex items-center justify-center text-6xl font-bold cursor-pointer shadow-lg"></div>
+            <div data-cell-index="1" class="cell w-full aspect-square bg-gray-800 rounded-lg flex items-center justify-center text-6xl font-bold cursor-pointer shadow-lg"></div>
+            <div data-cell-index="2" class="cell w-full aspect-square bg-gray-800 rounded-lg flex items-center justify-center text-6xl font-bold cursor-pointer shadow-lg"></div>
+            <div data-cell-index="3" class="cell w-full aspect-square bg-gray-800 rounded-lg flex items-center justify-center text-6xl font-bold cursor-pointer shadow-lg"></div>
+            <div data-cell-index="4" class="cell w-full aspect-square bg-gray-800 rounded-lg flex items-center justify-center text-6xl font-bold cursor-pointer shadow-lg"></div>
+            <div data-cell-index="5" class="cell w-full aspect-square bg-gray-800 rounded-lg flex items-center justify-center text-6xl font-bold cursor-pointer shadow-lg"></div>
+            <div data-cell-index="6" class="cell w-full aspect-square bg-gray-800 rounded-lg flex items-center justify-center text-6xl font-bold cursor-pointer shadow-lg"></div>
+            <div data-cell-index="7" class="cell w-full aspect-square bg-gray-800 rounded-lg flex items-center justify-center text-6xl font-bold cursor-pointer shadow-lg"></div>
+            <div data-cell-index="8" class="cell w-full aspect-square bg-gray-800 rounded-lg flex items-center justify-center text-6xl font-bold cursor-pointer shadow-lg"></div>
+        </div>
+    </div>
+    
+    <button id="restart-button" class="mt-8 px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:ring-opacity-75 transition-transform transform active:scale-95">
+        Restart Game
+    </button>
+
+    <script>
+        const statusText = document.getElementById('status-text');
+        const restartButton = document.getElementById('restart-button');
+        const cells = document.querySelectorAll('[data-cell-index]');
+
+        let gameActive = true;
+        let currentPlayer = 'X';
+        let gameState = ["", "", "", "", "", "", "", "", ""];
+
+        const winningConditions = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // Rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // Columns
+            [0, 4, 8], [2, 4, 6]             // Diagonals
+        ];
+
+        const winningMessage = () => `Player ${currentPlayer} has won! 🎉`;
+        const drawMessage = () => `Game ended in a draw! 🤝`;
+        const currentPlayerTurn = () => `Player ${currentPlayer}'s turn`;
+
+        // Initialize the game
+        statusText.innerHTML = currentPlayerTurn();
+
+        function handleCellClick(clickedCellEvent) {
+            const clickedCell = clickedCellEvent.target;
+            const clickedCellIndex = parseInt(clickedCell.getAttribute('data-cell-index'));
+
+            if (gameState[clickedCellIndex] !== "" || !gameActive) {
+                return;
+            }
+
+            handleCellPlayed(clickedCell, clickedCellIndex);
+            handleResultValidation();
+        }
+
+        function handleCellPlayed(clickedCell, clickedCellIndex) {
+            gameState[clickedCellIndex] = currentPlayer;
+            clickedCell.classList.add(currentPlayer.toLowerCase());
+        }
+
+        function handleResultValidation() {
+            let roundWon = false;
+            let winningCombo = [];
+
+            for (let i = 0; i < winningConditions.length; i++) {
+                const winCondition = winningConditions[i];
+                let a = gameState[winCondition[0]];
+                let b = gameState[winCondition[1]];
+                let c = gameState[winCondition[2]];
+
+                if (a === '' || b === '' || c === '') {
+                    continue;
+                }
+                if (a === b && b === c) {
+                    roundWon = true;
+                    winningCombo = winCondition;
+                    break;
+                }
+            }
+
+            if (roundWon) {
+                statusText.innerHTML = winningMessage();
+                gameActive = false;
+                winningCombo.forEach(index => {
+                    cells[index].classList.add('winning-cell');
+                });
+                return;
+            }
+
+            let roundDraw = !gameState.includes("");
+            if (roundDraw) {
+                statusText.innerHTML = drawMessage();
+                gameActive = false;
+                return;
+            }
+
+            handlePlayerChange();
+        }
+
+        function handlePlayerChange() {
+            currentPlayer = currentPlayer === "X" ? "O" : "X";
+            statusText.innerHTML = currentPlayerTurn();
+        }
+
+        function handleRestartGame() {
+            gameActive = true;
+            currentPlayer = "X";
+
+            gameState = ["", "", "", "", "", "", "", "", ""];
+            statusText.innerHTML = currentPlayerTurn();
+            cells.forEach(cell => {
+                cell.classList.remove('x', 'o', 'winning-cell');
+            });
+        }
+
+        // Add event listeners
+        cells.forEach(cell => cell.addEventListener('click', handleCellClick));
+        restartButton.addEventListener('click', handleRestartGame);
+    </script>
+</body>
+</html>
